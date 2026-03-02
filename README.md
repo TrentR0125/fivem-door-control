@@ -3,8 +3,7 @@
 - The commands are keybindable through FiveM settings.
 
 # Events
-```
-# Open a door related with a VehicleSeat
-# Arguments: VehicleSeat enum - the seat to open the door for
-TR:Client:DoorControl:OpenDoor
-```
+
+| Event                             | Description                                  | Paramters(s)           |
+| --------------------------------- | -------------------------------------------- | ---------------------- |
+| TR:Client:DoorControl:OpenDoor    | Open a vehicles door by the VehicleSeat enum | enum                   |
