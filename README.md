@@ -1,4 +1,4 @@
-# Door Control Summar
+# Door Control Summary
 - Commands to open a door of your choice.
 - The commands are keybindable through FiveM settings.
 
