@@ -1,6 +1,7 @@
 # Door Control Summary
 - Commands to open a door of your choice.
 - The commands are keybindable through FiveM settings.
+- Hold Left ALT + Press your set keybind to open the nearest door
 
 # Events
 
