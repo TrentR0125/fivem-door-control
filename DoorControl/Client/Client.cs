@@ -11,6 +11,8 @@ namespace TR.DoorControl.Client
     {
         #region Constant Variables
 
+        internal const float DOOR_DISTANCE = 1.5f;
+
         internal readonly IReadOnlyList<string> VEHICLE_DOOR_BONES = new List<string>()
         {
             "door_dside_f",
@@ -53,7 +55,7 @@ namespace TR.DoorControl.Client
         [Command("openNearestDoor")]
         internal async void OnOpenNearestDoorCommand()
         {
-            if (!IsControlPressedRegardless(Control.Sprint))
+            if (!IsControlPressedRegardless(Control.CharacterWheel))
             {
                 return;
             }
@@ -78,7 +80,7 @@ namespace TR.DoorControl.Client
 
         internal void ControlDoorCommand(VehicleSeat seat)
         {
-            if (!IsControlPressedRegardless(Control.Sprint))
+            if (!IsControlPressedRegardless(Control.CharacterWheel))
             {
                 return;
             }
@@ -86,13 +88,44 @@ namespace TR.DoorControl.Client
             ControlDoor(seat);
         }
 
+        internal void GetDoorForSeat(VehicleSeat seat, out VehicleDoorIndex door)
+        {
+            switch (seat)
+            {
+                case VehicleSeat.Driver:
+                    door = VehicleDoorIndex.FrontLeftDoor;
+                    break;
+
+                case VehicleSeat.Passenger:
+                    door = VehicleDoorIndex.FrontRightDoor;
+                    break;
+
+                case VehicleSeat.LeftRear:
+                    door = VehicleDoorIndex.BackLeftDoor;
+                    break;
+
+                case VehicleSeat.RightRear:
+                    door = VehicleDoorIndex.BackRightDoor;
+                    break;
+
+                // fallback on front left door
+                case VehicleSeat.None:
+                    door = VehicleDoorIndex.FrontLeftDoor;
+                    break;
+
+                default:
+                    door = VehicleDoorIndex.FrontLeftDoor;
+                    break;
+            }
+        }
+
         internal void GetClosestDoor(out VehicleDoorIndex? closestDoor, out Vehicle nearestVeh)
         {
             Ped plyrPed = Game.PlayerPed;
 
             nearestVeh = World.GetAllVehicles()
-                .Where(v => v != null && v.Position.DistanceToSquared(plyrPed.Position) < 25f)
-                .OrderBy(v => v.Position.DistanceToSquared(plyrPed.Position))
+                .Where(v => v != null && World.GetDistance(v.Position, plyrPed.Position) < 25f)
+                .OrderBy(v => World.GetDistance(v.Position, plyrPed.Position))
                 .FirstOrDefault();
 
             if (nearestVeh is null)
@@ -106,28 +139,27 @@ namespace TR.DoorControl.Client
 
             closestDoor = null;
 
-            float closestDistance = float.MaxValue;
-
             for (int doorIdx = 0; doorIdx < VEHICLE_DOOR_BONES.Count; doorIdx++)
             {
                 int boneIdx = nearestVeh.Bones[VEHICLE_DOOR_BONES[doorIdx]].Index;
 
-                if (boneIdx != -1)
+                if (boneIdx == -1)
                 {
-                    Vector3 doorPos = nearestVeh.Bones[boneIdx].Position;
+                    continue;
+                }
 
-                    float distance = pedPos.DistanceToSquared(doorPos);
+                Vector3 doorPos = nearestVeh.Bones[boneIdx].Position;
 
-                    if (distance < closestDistance)
-                    {
-                        closestDistance = distance;
-                        closestDoor = (VehicleDoorIndex)doorIdx;
-                    }
+                float distance = World.GetDistance(pedPos, doorPos);
+
+                if (distance < DOOR_DISTANCE)
+                {
+                    closestDoor = (VehicleDoorIndex)doorIdx;
                 }
             }
         }
 
-        internal async void ControlDoor(VehicleSeat? seat = null, VehicleDoorIndex? doorIdx = null, Vehicle targetVeh = null)
+        internal void ControlDoor(VehicleSeat? seat = null, VehicleDoorIndex? doorIdx = null, Vehicle targetVeh = null)
         {
             Ped plyrPed = Game.PlayerPed;
             Vehicle pedVeh = targetVeh ?? plyrPed.CurrentVehicle;
@@ -141,24 +173,9 @@ namespace TR.DoorControl.Client
 
             if (targetDoor is null && seat != null)
             {
-                switch (seat)
-                {
-                    case VehicleSeat.Driver:
-                        targetDoor = VehicleDoorIndex.FrontLeftDoor;
-                        break;
+                GetDoorForSeat(seat ?? VehicleSeat.None, out VehicleDoorIndex door);
 
-                    case VehicleSeat.Passenger:
-                        targetDoor = VehicleDoorIndex.FrontRightDoor;
-                        break;
-
-                    case VehicleSeat.LeftRear:
-                        targetDoor = VehicleDoorIndex.BackLeftDoor;
-                        break;
-
-                    case VehicleSeat.RightRear:
-                        targetDoor = VehicleDoorIndex.BackRightDoor;
-                        break;
-                }
+                targetDoor = door;
             }
 
             if (targetDoor is null)
